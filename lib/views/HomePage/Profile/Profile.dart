@@ -1,9 +1,12 @@
 // Importing necessary packages and files
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trashtocash/constants/Colors.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:trashtocash/endpoints/points.dart';
 import 'package:http/http.dart' as http;
 
 // Defining a StatefulWidget for the Profile
@@ -16,49 +19,102 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
   // Initializing controllers
-  final TextEditingController nameController = TextEditingController();
+  final TextEditingController fnameController = TextEditingController();
+  final TextEditingController lnameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController numberController = TextEditingController();
-  Future<void> updateUserProfile() async {
-    // Get values from text controllers
-    String name = nameController.text;
-    String email = emailController.text;
-    String phoneNumber = numberController.text;
+  String? user_id;
+  String? mobileHolder;
+  String? pfp_link;
+  String? created_at;
+  String? updated_at;
+  String? isLogged;
+  
+  Future<void> saveData(object) async {
+  if (object["user"] is List) {
+    List<Map<String, dynamic>> dataList = [];
+    var user = object["user"][0]; // Get the user object directly
+    String names = user["name"];
+    String user_id = user["user_id"].toString();
+    String fname = names.split(" ")[0];
+    String lname = names.split(" ")[1];
+    String email = user["email"];
+    String mobile = user["mobile"];
+    String pfp_link = user["pfp_link"];
+    String created_at = user["created_at"].toString();
+    String updated_at = user["updated_at"].toString();
+    String isLogged = "true";
+    Map<String, dynamic> mappedItems = {
+      "user_id": user_id,
+      "name": "$fname $lname",
+      "email": email,
+      "mobile": mobile,
+      "pfp_link": pfp_link,
+      "created_at": created_at,
+      "updated_at": updated_at,
+      "isLogged": isLogged,
+    };
+    dataList.add(mappedItems);
+    final data2store = json.encode(dataList);
+    Directory directory = await getApplicationDocumentsDirectory();
+    String filepath = '${directory.path}/data.json';
+    File file = File(filepath);
+    await file.writeAsString(data2store);
+  }
+}
 
-    // Your API endpoint to update user profile
-    String apiUrl = 'https://example.com/api/update_profile';
-
+Future<void> readData() async {
     try {
-      // Send a POST request to the backend
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, dynamic>{
-          'name': name,
-          'email': email,
-          'phoneNumber': phoneNumber,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile updated successfully')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile')),
-        );
+      Directory directory = await getApplicationDocumentsDirectory();
+      String filepath = '${directory.path}/data.json';
+      File file = File(filepath);
+      String data = await file.readAsString();
+      List<dynamic> decodedData = json.decode(data);
+      for (var item in decodedData) {
+        String names = item["name"];
+        setState(() {
+          user_id = item["user_id"];
+          fnameController.text = names.split(" ")[0];
+          lnameController.text = names.split(" ")[1];
+          emailController.text = item["email"];
+          numberController.text = '+${item["mobile"]?.substring(0, 2)} ${item["mobile"]?.substring(2, 4)} ${item["mobile"]?.substring(4, 7)} ${item["mobile"]?.substring(7)}';
+          mobileHolder = item["mobile"];
+          pfp_link = item["pfp_link"];
+          created_at = item["created_at"];
+          updated_at = item["updated_at"];
+          isLogged = item["isLogged"];
+        });
       }
     } catch (e) {
-      // Catch any errors that occur during the HTTP request
-      print('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      print("Error reading data: $e");
     }
   }
+
+  Future<void> LogOut() async {
+    List<Map<String, dynamic>> dataList = [];
+    Map<String, dynamic> mappedItems = {
+      "user_id": user_id,
+      "name": "${fnameController.text} ${lnameController.text}",
+      "email": emailController.text,
+      "mobile": mobileHolder,
+      "pfp_link": pfp_link,
+      "created_at": created_at,
+      "updated_at": updated_at,
+      "isLogged": "false",
+    };
+    dataList.add(mappedItems);
+    final data2store = json.encode(dataList);
+    Directory directory = await getApplicationDocumentsDirectory();
+    String filepath = '${directory.path}/data.json';
+    File file = File(filepath);
+    await file.writeAsString(data2store);
+  }
+
+  @override
+    void initState() {
+      super.initState();
+      readData();
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -107,9 +163,12 @@ class _ProfileState extends State<Profile> {
                             width: 2.0,
                           ),
                         ),
-                        child: Image.asset(
-                          'assets/images/man.png',
-                          fit: BoxFit.cover,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(100.0),
+                          child: Image.network(
+                            '${Points().phpImageUrl}/$pfp_link',
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ),
@@ -119,7 +178,7 @@ class _ProfileState extends State<Profile> {
                       child: Column(
                         children: [
                           Text(
-                            'Himesh Fernando',
+                            "${fnameController.text} ${lnameController.text}",
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w500,
                               fontSize: 17,
@@ -173,7 +232,7 @@ class _ProfileState extends State<Profile> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Text(
-                    'Name',
+                    'First Name',
                     style: GoogleFonts.montserrat(
                       fontWeight: FontWeight.w500,
                       fontSize: 17,
@@ -183,7 +242,38 @@ class _ProfileState extends State<Profile> {
                 ],
               ),
               TextField(
-                controller: nameController,
+                controller: fnameController,
+                style:
+                    TextStyle(color: const Color.fromARGB(255, 15, 108, 133)),
+                decoration: InputDecoration(
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide:
+                        BorderSide(color: Color.fromARGB(69, 15, 108, 133)),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide:
+                        BorderSide(color: Color.fromARGB(69, 15, 108, 133)),
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 20,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Text(
+                    'Last Name',
+                    style: GoogleFonts.montserrat(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 17,
+                      color: const Color.fromARGB(255, 15, 108, 133),
+                    ),
+                  ),
+                ],
+              ),
+              TextField(
+                controller: lnameController,
                 style:
                     TextStyle(color: const Color.fromARGB(255, 15, 108, 133)),
                 decoration: InputDecoration(
@@ -312,26 +402,32 @@ class _ProfileState extends State<Profile> {
               SizedBox(
                 height: 30,
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Text(
-                    'Log Out',
-                    style: GoogleFonts.montserrat(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 17,
-                      color: const Color.fromARGB(255, 15, 108, 133),
+              GestureDetector(
+                onTap: () {
+                  LogOut();
+                  Navigator.pushReplacementNamed(context, '/splashScreen');
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Log Out',
+                      style: GoogleFonts.montserrat(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 17,
+                        color: const Color.fromARGB(255, 15, 108, 133),
+                      ),
                     ),
-                  ),
-                  SizedBox(
-                    width: 20,
-                  ),
-                  Icon(
-                    Icons.logout,
-                    color: AppColors.iconColor,
-                    size: 22,
-                  ),
-                ],
+                    SizedBox(
+                      width: 20,
+                    ),
+                    Icon(
+                      Icons.logout,
+                      color: AppColors.iconColor,
+                      size: 22,
+                    ),
+                  ],
+                ),
               ),
               SizedBox(
                 height: 40,

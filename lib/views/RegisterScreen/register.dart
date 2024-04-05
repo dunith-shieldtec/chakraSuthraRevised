@@ -176,15 +176,31 @@ class _RState extends State<R> {
   }
 
   bool isValidEmail(String email) {
-    return EmailValidator.validate(email);
+    if (!EmailValidator.validate(email)) {
+      return false;
+    }
+    final disposableEmailRegex = RegExp(
+        r'^(?:\.|^)(temp|yop|trash|guerrilla|10minute|jetable|throwawy|spam4me|trashmail)(?:\.)*@',
+        caseSensitive: false);
+    // final disposableTlds = ['.xyz', '.gq', '.ml', '.tk'];
+    // final domainParts = email.split('@');
+    if (disposableEmailRegex.hasMatch(email)) {  //|| disposableTlds.contains(domainParts.last)
+      return false;
+    }
+    return true;
   }
 
   // Method to submit form data
   _submitForm(f,l, e, t, c) async {
-    String name = f+" "+l;
+    String fname = f;
+    String lname = l;
     String email = e;
     String telephone = t;
-    if(!isValidMobileNumber(telephone)){
+    if(fname.length<3){
+      dialogOpen(context, "Invalid Name", "First Name Is Too Short");
+    }else if(lname.length<3){
+      dialogOpen(context, "Invalid Name", "Last Name Is Too Short");
+    }else if(!isValidMobileNumber(telephone)){
       dialogOpen(context,"Invalid Number","The Mobile Number You Entered Was Invalid");
     }else if(!isValidEmail(email)){
       dialogOpen(context,"Invalid Email","The Email Address You Entered Was Invalid");
@@ -223,7 +239,7 @@ class _RState extends State<R> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => OTPScreen(
-                        u_name:name,
+                        u_name:"$fname $lname",
                         u_email:email,
                         u_phone:telephone,
                         u_img_link:_image,

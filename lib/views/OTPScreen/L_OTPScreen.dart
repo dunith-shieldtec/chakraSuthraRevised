@@ -80,9 +80,6 @@ class _LOTPScreenState extends State<LOTPScreen> {
   }
 }
 
-
-  
-
   dialogOpen(c,String h,String m){
     return showDialog(
       context: c,

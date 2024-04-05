@@ -105,20 +105,20 @@ class _EditProState extends State<EditPro> {
                       ),
                       child: Center(
                         child: _image == null
-                            ? Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 30,
-                              )
-                            : ClipRRect(
-                                borderRadius: BorderRadius.circular(100),
-                                child: Image.file(
-                                  File(_image!.path),
-                                  fit: BoxFit.cover,
-                                  width: 100,
-                                  height: 100,
-                                ),
+                          ? Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 30,
+                            )
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(100),
+                              child: Image.file(
+                                File(_image!.path),
+                                fit: BoxFit.cover,
+                                width: 100,
+                                height: 100,
                               ),
+                            ),
                       ),
                     ),
                   ),

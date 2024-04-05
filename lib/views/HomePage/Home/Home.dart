@@ -34,10 +34,10 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
-    readData();
+    Future.delayed(Duration.zero, () {
+      readData();
+    });
   }
-
-  
 
   Future<void> readData() async {
     try {

@@ -12,6 +12,7 @@ import 'package:trashtocash/endpoints/points.dart';
 import 'package:trashtocash/widgets/custom_button.dart';
 import 'package:trashtocash/controllers/LoginController.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 
 // Defining a StatefulWidget for the OTPScreen
@@ -86,33 +87,63 @@ class _OTPScreenState extends State<OTPScreen> {
     super.dispose();
   }
 
-Future<http.Response> _uploadImage(XFile? _imageFile) async {
-  String ImageUrlPhp = Points().phpImageUrl;
-  String upldImage = Points().imageUpload;
+  Future<http.Response> _uploadImage(XFile? _imageFile) async {
+    String ImageUrlPhp = Points().phpImageUrl;
+    String upldImage = Points().imageUpload;
 
-  var uri = Uri.parse('$ImageUrlPhp/$upldImage');
-  var request = http.MultipartRequest('POST', uri);
+    var uri = Uri.parse('$ImageUrlPhp/$upldImage');
+    var request = http.MultipartRequest('POST', uri);
 
-  if (_imageFile != null) {
-    var imageFile = File(_imageFile.path);
-    request.files.add(http.MultipartFile(
-      'file',
-      imageFile.readAsBytes().asStream(),
-      imageFile.lengthSync(),
-      filename: imageFile.path.split('/').last,
-    ));
-  } else {
-    // Add a placeholder or handle the case of no file being uploaded
-    // For example, you could add a default image path to the request
-    request.fields['defaultImage'] = 'true';
+    if (_imageFile != null) {
+      var imageFile = File(_imageFile.path);
+      request.files.add(http.MultipartFile(
+        'file',
+        imageFile.readAsBytes().asStream(),
+        imageFile.lengthSync(),
+        filename: imageFile.path.split('/').last,
+      ));
+    } else {
+      // Add a placeholder or handle the case of no file being uploaded
+      // For example, you could add a default image path to the request
+      request.fields['defaultImage'] = 'true';
+    }
+
+    var response = await request.send();
+    var responseData = await response.stream.bytesToString();
+
+    return http.Response(responseData, response.statusCode);
   }
 
-  var response = await request.send();
-  var responseData = await response.stream.bytesToString();
-
-  return http.Response(responseData, response.statusCode);
-}
-
+  Future<void> saveData(object) async {
+    if (object["user"] is List) {
+      List<Map<String, dynamic>> dataList = [];
+      var user = object["user"][0]; // Get the user object directly
+      String user_id = user["user_id"].toString();
+      String name = user["name"];
+      String email = user["email"];
+      String mobile = user["mobile"];
+      String pfp_link = user["pfp_link"];
+      String created_at = user["created_at"].toString();
+      String updated_at = user["updated_at"].toString();
+      String isLogged = "true";
+      Map<String, dynamic> mappedItems = {
+        "user_id": user_id,
+        "name": name,
+        "email": email,
+        "mobile": mobile,
+        "pfp_link": pfp_link,
+        "created_at": created_at,
+        "updated_at": updated_at,
+        "isLogged": isLogged,
+      };
+      dataList.add(mappedItems);
+      final data2store = json.encode(dataList);
+      Directory directory = await getApplicationDocumentsDirectory();
+      String filepath = '${directory.path}/data.json';
+      File file = File(filepath);
+      await file.writeAsString(data2store);
+    }
+  }
 
   // Method to verify the entered OTP
   Future<void> _verifyOTP() async {
@@ -149,11 +180,11 @@ Future<http.Response> _uploadImage(XFile? _imageFile) async {
           if (response.statusCode == 200) {
             var obj = jsonDecode(response.body);
               if (obj["status"]) {
+                saveData(obj);
                 Navigator.pushNamed(
                   context, 
                   '/homepage', 
-                  arguments: {'head': obj["header"], 'bod': obj["message"], 'user': obj["user"][0]
-                });
+                  arguments: {'head': obj["header"], 'bod': obj["message"]});
               }else{
                 dialogOpen(context,obj["header"],obj["message"]);
                 setState(() {
