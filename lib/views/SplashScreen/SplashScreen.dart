@@ -34,25 +34,24 @@ class _SplashScreenState extends State<SplashScreen> {
       bool isLogged = false;
       for (var item in decodedData) {
         if (item["isLogged"] == "true") {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => HomePage()),
-          );
+          dispose();
+          Navigator.pushReplacementNamed(context, '/homepage');
         }else{
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => HomeScreen()),
-          );
+          dispose();
+          Navigator.pushReplacementNamed(context, '/homeScreen');
         }
       }
       
     } catch (e) {
       print("Error reading data: $e");
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
-      );
+      Navigator.pushReplacementNamed(context, '/homeScreen');
     }
+  }
+
+  @override
+  void dispose() {
+    // Cleanup logic
+    super.dispose();
   }
 
   @override

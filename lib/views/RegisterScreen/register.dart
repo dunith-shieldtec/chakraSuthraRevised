@@ -33,7 +33,6 @@ class R extends StatefulWidget {
   State<R> createState() => _RState();
 }
 
-
 class _RState extends State<R> {
   // Initializing controllers and variables
   final TextEditingController fnameController = TextEditingController();
@@ -46,7 +45,6 @@ class _RState extends State<R> {
   XFile? _image;
   // ignore: unused_field
   late String _imageUrl;
-  
 
   @override
   void initState() {
@@ -54,20 +52,27 @@ class _RState extends State<R> {
     _imagePicker = ImagePicker();
   }
 
+  @override
+  void dispose() {
+    // Cleanup logic
+    super.dispose();
+  }
+
   // Method to pick image from gallery
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile =
+        await _imagePicker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       final imageValid = await validateImageFile(pickedFile);
-      if(imageValid==true){
-        setState((){
+      if (imageValid == true) {
+        setState(() {
           _image = pickedFile;
         });
-      }else{
+      } else {
         dialogOpen(context, "Image Error", imageValid);
       }
-    }else{
-      setState((){
+    } else {
+      setState(() {
         _image = pickedFile;
       });
     }
@@ -76,7 +81,8 @@ class _RState extends State<R> {
   Future validateImageFile(XFile imageFile) async {
     // Check file size
     final fileSize = await imageFile.length();
-    if (fileSize > 5000000) { //5MB
+    if (fileSize > 5000000) {
+      //5MB
       return ("File is too large.");
     }
 
@@ -103,7 +109,8 @@ class _RState extends State<R> {
     return true;
   }
 
-  Future<XFile?> renameImageFile(XFile? originalImageFile, String newFileName) async {
+  Future<XFile?> renameImageFile(
+      XFile? originalImageFile, String newFileName) async {
     if (originalImageFile == null) {
       print("No image to rename.");
       return null;
@@ -113,7 +120,8 @@ class _RState extends State<R> {
     String dir = path.dirname(originalImageFile.path);
 
     // Build the new file path with the new name but keep the original extension
-    String newPath = path.join(dir, "$newFileName${path.extension(originalImageFile.path)}");
+    String newPath =
+        path.join(dir, "$newFileName${path.extension(originalImageFile.path)}");
 
     // Create a copy of the file with the new name
     File newFile = await File(originalImageFile.path).copy(newPath);
@@ -126,7 +134,7 @@ class _RState extends State<R> {
     return newImageFile;
   }
 
-  dialogOpen(c,String h,String m){
+  dialogOpen(c, String h, String m) {
     return showDialog(
       context: c,
       builder: (BuildContext dialogContext) {
@@ -135,10 +143,10 @@ class _RState extends State<R> {
           content: Text(m),
           actions: <Widget>[
             GestureDetector(
-              onTap: (){
-              // Close the dialog
-              Navigator.of(dialogContext).pop();
-            },
+              onTap: () {
+                // Close the dialog
+                Navigator.of(dialogContext).pop();
+              },
               child: Text('OK'),
             ),
           ],
@@ -150,7 +158,8 @@ class _RState extends State<R> {
   //method to format the mobile number
   String formatMobileNumber(String mobileInput) {
     // Remove all non-numeric characters from the input
-    String formattedMobileNumber = mobileInput.replaceAll(RegExp(r'[^0-9]'), '');
+    String formattedMobileNumber =
+        mobileInput.replaceAll(RegExp(r'[^0-9]'), '');
 
     // Check if the number starts with "0" and replace it with "94"
     if (formattedMobileNumber.startsWith('0')) {
@@ -184,40 +193,69 @@ class _RState extends State<R> {
         caseSensitive: false);
     // final disposableTlds = ['.xyz', '.gq', '.ml', '.tk'];
     // final domainParts = email.split('@');
-    if (disposableEmailRegex.hasMatch(email)) {  //|| disposableTlds.contains(domainParts.last)
+    if (disposableEmailRegex.hasMatch(email)) {
+      //|| disposableTlds.contains(domainParts.last)
       return false;
     }
     return true;
   }
 
+  Future<http.Response> _uploadImage(XFile? _imageFile) async {
+    String ImageUrlPhp = Points().phpImageUrl;
+    String upldImage = Points().imageUpload;
+
+    var uri = Uri.parse('$ImageUrlPhp/$upldImage');
+    var request = http.MultipartRequest('POST', uri);
+
+    if (_imageFile != null) {
+      var imageFile = File(_imageFile.path);
+      request.files.add(http.MultipartFile(
+        'file',
+        imageFile.readAsBytes().asStream(),
+        imageFile.lengthSync(),
+        filename: imageFile.path.split('/').last,
+      ));
+    } else {
+      request.fields['defaultImage'] = 'true';
+    }
+
+    var response = await request.send();
+    var responseData = await response.stream.bytesToString();
+
+    return http.Response(responseData, response.statusCode);
+  }
+
   // Method to submit form data
-  _submitForm(f,l, e, t, c) async {
+  _submitForm(f, l, e, t, c) async {
     String fname = f;
     String lname = l;
     String email = e;
     String telephone = t;
-    if(fname.length<3){
+    if (fname.length < 3) {
       dialogOpen(context, "Invalid Name", "First Name Is Too Short");
-    }else if(lname.length<3){
+    } else if (lname.length < 3) {
       dialogOpen(context, "Invalid Name", "Last Name Is Too Short");
-    }else if(!isValidMobileNumber(telephone)){
-      dialogOpen(context,"Invalid Number","The Mobile Number You Entered Was Invalid");
-    }else if(!isValidEmail(email)){
-      dialogOpen(context,"Invalid Email","The Email Address You Entered Was Invalid");
-    }else{
+    } else if (!isValidMobileNumber(telephone)) {
+      dialogOpen(context, "Invalid Number",
+          "The Mobile Number You Entered Was Invalid");
+    } else if (!isValidEmail(email)) {
+      dialogOpen(context, "Invalid Email",
+          "The Email Address You Entered Was Invalid");
+    } else {
       telephone = formatMobileNumber(t);
 
       var Urlapi = Points().apiUrl;
       var SendOtp = Points().otpSend;
       var CheckUser = Points().userCheck;
 
-      if(isChecked){
+      if (isChecked) {
         try {
           final response = await http.get(Uri.parse('$Urlapi/$CheckUser/$email/$telephone'));
           if (response.statusCode == 200) {
             // If the response body is 'true', it means the user exists
-            final XFile? formattedpickedFile = await renameImageFile(_image,otpController.text);
-            if(response.body.toLowerCase() == 'false'){
+            final XFile? formattedpickedFile =
+                await renameImageFile(_image, otpController.text);
+            if (response.body.toLowerCase() == 'false') {
               final Map<String, dynamic> data = {
                 'telephone': telephone,
               };
@@ -226,58 +264,81 @@ class _RState extends State<R> {
                 _image = formattedpickedFile;
               });
               try {
-                final http.Response response = await http.post(
-                  Uri.parse('$Urlapi/$SendOtp/$telephone'),
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: jsonBody,
-                );
+                var response = await _uploadImage(formattedpickedFile);
+                var respObj = jsonDecode(response.body);
+                if (respObj['status'] == true) {
+                  try {
+                    final http.Response response = await http.post(
+                      Uri.parse('$Urlapi/$SendOtp/$telephone'),
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: jsonBody,
+                    );
 
-                if (response.statusCode == 200) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => OTPScreen(
-                        u_name:"$fname $lname",
-                        u_email:email,
-                        u_phone:telephone,
-                        u_img_link:_image,
-                      ),
-                    ),
-                  );
-                  // Navigator.pushNamed(
-                  //   context, 
-                  //   '/homepage', 
-                  //   arguments: {
-                  //     'u_name':name,
-                  //     'u_email':email,
-                  //     'u_phone':telephone,
-                  //     'u_img_link':_image,
-                  // });
+                    if (response.statusCode == 200) {
+                      dispose();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => OTPScreen(
+                            u_name: "$fname $lname",
+                            u_email: email,
+                            u_phone: telephone,
+                            u_img_link: respObj["fileLocation"],
+                          ),
+                        ),
+                      );
+                      // Navigator.push(
+                      //   context,
+                      //   '/homepage',
+                      //   arguments: {
+                      //     'u_name':"$fname $lname",
+                      //     'u_email':email,
+                      //     'u_phone':telephone,
+                      //     'u_img_link':respObj["fileLocation"],
+                      // });
+                    } else {
+                      print(
+                          'Error during API request. Status code: ${response.statusCode}');
+                      dialogOpen(context, "Error",
+                          "Error Sending OTP, Please Try Again");
+                    }
+                  } catch (error) {
+                    dialogOpen(context, "Error",
+                        "Error Sending OTP, Please Try Again");
+                    print('Error: $error');
+                  }
                 } else {
-                  print('Error during API request. Status code: ${response.statusCode}');
-                  dialogOpen(context, "Error", "Error Sending OTP, Please Try Again");
+                  dialogOpen(context, "Error",
+                      "Image Error Occured, ${respObj["message"]}");
+                  Navigator.pushReplacementNamed(context, '/signup');
                 }
-              } catch (error) {
-                dialogOpen(context, "Error", "Error Sending OTP, Please Try Again");
-                print('Error: $error');
+              } catch (e) {
+                print('Error uploading image: $e');
+                dialogOpen(context, "Error",
+                    "Image Error Occured, Please Change Image and Try Again");
+                Navigator.pushReplacementNamed(context, '/signup');
               }
-            }else{
-              dialogOpen(context, "User Exists", "A User With The Same Email Or Mobile Already Exists");
+            } else {
+              dialogOpen(context, "User Exists",
+                  "A User With The Same Email Or Mobile Already Exists");
             }
           } else {
             // Handle other status codes if needed
             print('Failed to load user data, status code: ${response.body}');
-            dialogOpen(context, "Registering Error", "An Error Occured, Please try Again");
+            dialogOpen(context, "Registering Error",
+                "An Error Occured, Please try Again");
           }
         } catch (e) {
           // Handle network errors
           print('Error: $e');
-          dialogOpen(context, "Registering Error", "An Network Error Occured, Please try Again");
+          dialogOpen(context, "Registering Error",
+              "An Network Error Occured, Please try Again");
         }
-      }else{
-        dialogOpen(context, 'Agree To Terms & Conditions', 'Please Check The Box If You Agree To Our Terms And Conditions, Only Then Will You Be Able To Proceed.');
+      } else {
+        dialogOpen(context, 'Agree To Terms & Conditions',
+            'Please Check The Box If You Agree To Our Terms And Conditions, Only Then Will You Be Able To Proceed.');
       }
     }
   }
@@ -399,57 +460,57 @@ class _RState extends State<R> {
                       labelText: "ENTER EMAIL *",
                     ),
                     TextField(
-                            controller: otpController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(9.0),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(9.0),
-                                borderSide: const BorderSide(
-                                  color: Color.fromARGB(255, 15, 108, 133),
-                                  width: 0.5,
-                                ),
-                              ),
-                              prefixIcon: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8.0, vertical: 5.0),
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 8.0, vertical: 5),
-                                decoration: const BoxDecoration(
-                                  color: Colors.transparent,
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(5.0),
-                                  ),
-                                ),
-                                child: Text(
-                                  '+94', // Country code for Sri Lanka
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: Color.fromARGB(255, 0, 0, 0),
-                                  ),
-                                ),
-                              ),
-                              suffixIcon: otpController.text.length == 9
-                                  ? SizedBox(
-                                      width: 50,
-                                      child: Image.asset(
-                                        'assets/images/ph.png',
-                                        scale: 1.0,
-                                      ),
-                                    )
-                                  : SizedBox(),
-                              labelText: "ENTER YOUR MOBILE NUMBER TO RECEIVE AN OTP",
-                              labelStyle: GoogleFonts.montserrat(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: const Color.fromARGB(255, 159, 159, 159),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 5, horizontal: 10),
+                      controller: otpController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(9.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(9.0),
+                          borderSide: const BorderSide(
+                            color: Color.fromARGB(255, 15, 108, 133),
+                            width: 0.5,
+                          ),
+                        ),
+                        prefixIcon: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0, vertical: 5.0),
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 8.0, vertical: 5),
+                          decoration: const BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(5.0),
                             ),
                           ),
+                          child: Text(
+                            '+94', // Country code for Sri Lanka
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Color.fromARGB(255, 0, 0, 0),
+                            ),
+                          ),
+                        ),
+                        suffixIcon: otpController.text.length == 9
+                            ? SizedBox(
+                                width: 50,
+                                child: Image.asset(
+                                  'assets/images/ph.png',
+                                  scale: 1.0,
+                                ),
+                              )
+                            : SizedBox(),
+                        labelText: "ENTER YOUR MOBILE NUMBER TO RECEIVE AN OTP",
+                        labelStyle: GoogleFonts.montserrat(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: const Color.fromARGB(255, 159, 159, 159),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 5, horizontal: 10),
+                      ),
+                    ),
                     // Checkbox for Terms and Conditions
                     CheckboxListTile(
                       title: RichText(
@@ -476,45 +537,45 @@ class _RState extends State<R> {
                                       return AlertDialog(
                                         title: Text('Terms & Conditions'),
                                         content: SingleChildScrollView(
-                                          child: Text(
-                                            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt.'
-                                            )
-                                          ),
+                                            child: Text(
+                                                'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt massa. Cras pulvinar porta ligula a hendrerit. Vestibulum sit amet lorem dignissim, dignissim nisi vitae, eleifend augue.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras a tincidunt.')),
                                         actions: <Widget>[
-                                            Row(
-                                                children: [
-                                                  GestureDetector(
-                                                    onTap: () {
-                                                      setState(() {
-                                                        isChecked = true;
-                                                        Navigator.pop(context);
-                                                      });
-                                                    },
-                                                    child: CustomButton(
-                                                      text: "AGREE", 
-                                                      height: 55,
-                                                      width: (screenWidth / 3) - 20,
-                                                      backgroundColor: AppColors.accentColor, 
-                                                    ),
-                                                  ),
-                                                  Spacer(),
-                                                  GestureDetector(
-                                                    onTap: () {
-                                                      setState(() {
-                                                        isChecked = false;
-                                                        Navigator.pop(context);
-                                                      });
-
-                                                    },
-                                                    child: CustomButton2(
-                                                      text: "DISAGREE", 
-                                                      height: 55,
-                                                      width: (screenWidth / 3) - 20,
-                                                      backgroundColor: const Color.fromARGB(255, 229, 248, 255), 
-                                                    ),
-                                                  ),
-                                                ],
+                                          Row(
+                                            children: [
+                                              GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    isChecked = true;
+                                                    Navigator.pop(context);
+                                                  });
+                                                },
+                                                child: CustomButton(
+                                                  text: "AGREE",
+                                                  height: 55,
+                                                  width: (screenWidth / 3) - 20,
+                                                  backgroundColor:
+                                                      AppColors.accentColor,
+                                                ),
                                               ),
+                                              Spacer(),
+                                              GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    isChecked = false;
+                                                    Navigator.pop(context);
+                                                  });
+                                                },
+                                                child: CustomButton2(
+                                                  text: "DISAGREE",
+                                                  height: 55,
+                                                  width: (screenWidth / 3) - 20,
+                                                  backgroundColor:
+                                                      const Color.fromARGB(
+                                                          255, 229, 248, 255),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ],
                                       );
                                     },
@@ -565,31 +626,35 @@ class _RState extends State<R> {
                         //   );
                         // } else {
                         //   // Submit form data
-                          _submitForm(fnameController.text.trim(),lnameController.text.trim(), emailController.text.trim(),
-                              otpController.text.trim(),isChecked);
+                        _submitForm(
+                            fnameController.text.trim(),
+                            lnameController.text.trim(),
+                            emailController.text.trim(),
+                            otpController.text.trim(),
+                            isChecked);
 
-                          // Show success dialog
-                          // showDialog(
-                          //   context: context,
-                          //   builder: (BuildContext context) {
-                          //     return AlertDialog(
-                          //       title: Text('USER SAVED'),
-                          //       content: Text(
-                          //           'Your details have been saved successfully.'),
-                          //       actions: <Widget>[
-                          //         TextButton(
-                          //           onPressed: () {
-                          //             // Close the dialog
-                          //             Navigator.of(context).pop();
-                          //           },
-                          //           child: Text('OK'),
-                          //         ),
-                          //       ],
-                          //     );
-                          //   },
-                          // );
+                        // Show success dialog
+                        // showDialog(
+                        //   context: context,
+                        //   builder: (BuildContext context) {
+                        //     return AlertDialog(
+                        //       title: Text('USER SAVED'),
+                        //       content: Text(
+                        //           'Your details have been saved successfully.'),
+                        //       actions: <Widget>[
+                        //         TextButton(
+                        //           onPressed: () {
+                        //             // Close the dialog
+                        //             Navigator.of(context).pop();
+                        //           },
+                        //           child: Text('OK'),
+                        //         ),
+                        //       ],
+                        //     );
+                        //   },
+                        // );
 
-                          // Navigate to OTP Screen
+                        // Navigate to OTP Screen
                         // }
                       },
                       child: CustomButton(

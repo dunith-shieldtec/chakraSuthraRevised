@@ -20,7 +20,7 @@ class OTPScreen extends StatefulWidget {
   final String u_name;
   final String u_email;
   final String u_phone;
-  final XFile? u_img_link;
+  final String u_img_link;
   const OTPScreen({required this.u_name, required this.u_email, required this.u_phone, required this.u_img_link});
 
   @override
@@ -42,8 +42,12 @@ class _OTPScreenState extends State<OTPScreen> {
   void initState() {
     super.initState();
     startCountdown();
-    setState(() {
-      phoneController.text = widget.u_phone.substring(2, 4) + " " + widget.u_phone.substring(4, 7) + " " + widget.u_phone.substring(7);;
+    Future.delayed(Duration.zero, () {
+      final String? data = ModalRoute.of(context)!.settings.arguments as String?;
+      setState(() {
+        
+        phoneController.text = widget.u_phone.substring(2, 4) + " " + widget.u_phone.substring(4, 7) + " " + widget.u_phone.substring(7);;
+      });
     });
   }
 
@@ -87,33 +91,6 @@ class _OTPScreenState extends State<OTPScreen> {
     super.dispose();
   }
 
-  Future<http.Response> _uploadImage(XFile? _imageFile) async {
-    String ImageUrlPhp = Points().phpImageUrl;
-    String upldImage = Points().imageUpload;
-
-    var uri = Uri.parse('$ImageUrlPhp/$upldImage');
-    var request = http.MultipartRequest('POST', uri);
-
-    if (_imageFile != null) {
-      var imageFile = File(_imageFile.path);
-      request.files.add(http.MultipartFile(
-        'file',
-        imageFile.readAsBytes().asStream(),
-        imageFile.lengthSync(),
-        filename: imageFile.path.split('/').last,
-      ));
-    } else {
-      // Add a placeholder or handle the case of no file being uploaded
-      // For example, you could add a default image path to the request
-      request.fields['defaultImage'] = 'true';
-    }
-
-    var response = await request.send();
-    var responseData = await response.stream.bytesToString();
-
-    return http.Response(responseData, response.statusCode);
-  }
-
   Future<void> saveData(object) async {
     if (object["user"] is List) {
       List<Map<String, dynamic>> dataList = [];
@@ -145,6 +122,21 @@ class _OTPScreenState extends State<OTPScreen> {
     }
   }
 
+  Future _deleteImage(imagePath) async {
+    String ImageUrlPhp = Points().phpImageUrl;
+    String dltImage = Points().imageDelete;
+
+    final response = await http.post(Uri.parse('$ImageUrlPhp/$dltImage'), body: {'imagePath': imagePath});
+
+    if (response.statusCode == 200) {
+      var obj = jsonDecode(response.body);
+      return obj["status"];
+    } else {
+      print('Failed to delete image. Error: ${response.reasonPhrase}');
+      return false;
+    }
+  }
+
   // Method to verify the entered OTP
   Future<void> _verifyOTP() async {
     
@@ -153,21 +145,15 @@ class _OTPScreenState extends State<OTPScreen> {
     var Urlapi = Points().apiUrl;
     var VerifyOtp = Points().signupOtpVerify;
 
-    try {
-      var response = await _uploadImage(widget.u_img_link);
-      var respObj = jsonDecode(response.body);
-      if(respObj['status']==true){
-
-        final Map<String, dynamic> otpdata = {
+    final Map<String, dynamic> otpdata = {
           'name': widget.u_name,
           'email': widget.u_email,
           'mobile': widget.u_phone,
-          'pfp_link': respObj["fileLocation"],
+          'pfp_link': widget.u_img_link,
           'created_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),
         };
         String jsonBody = json.encode(otpdata);
-
         try {
           final http.Response response = await http.post(
             Uri.parse('$Urlapi/$VerifyOtp/${widget.u_phone}/$otp'),
@@ -176,11 +162,11 @@ class _OTPScreenState extends State<OTPScreen> {
             },
             body: jsonBody,
           );
-
           if (response.statusCode == 200) {
             var obj = jsonDecode(response.body);
               if (obj["status"]) {
                 saveData(obj);
+                dispose();
                 Navigator.pushNamed(
                   context, 
                   '/homepage', 
@@ -196,22 +182,19 @@ class _OTPScreenState extends State<OTPScreen> {
             setState(() {
               pinController.setText("");
             });
+            await _deleteImage(widget.u_img_link);
+            dispose();
+            Navigator.pushReplacementNamed(context, '/signup');
           }
         } catch (error) {
           dialogOpen(context,"Verifying Error","Error While Verifying User, Please Try again");
           setState(() {
             pinController.setText("");
           });
-        }
-      }else{
-        dialogOpen(context, "Error", "Image Error Occured, Please Change Image and Try Again");
-        Navigator.pushReplacementNamed(context, '/signup');
+          await _deleteImage(widget.u_img_link);
+          dispose();
+          Navigator.pushReplacementNamed(context, '/signup');
       }
-    } catch (e) {
-      print('Error uploading image: $e');
-      dialogOpen(context, "Error", "Image Error Occured, Please Change Image and Try Again");
-      Navigator.pushReplacementNamed(context, '/signup');
-    }
   }
 
   @override

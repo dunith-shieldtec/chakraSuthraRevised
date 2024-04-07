@@ -242,6 +242,7 @@ Future<void> readData() async {
                 ],
               ),
               TextField(
+                readOnly: true,
                 controller: fnameController,
                 style:
                     TextStyle(color: const Color.fromARGB(255, 15, 108, 133)),
@@ -273,6 +274,7 @@ Future<void> readData() async {
                 ],
               ),
               TextField(
+                readOnly: true,
                 controller: lnameController,
                 style:
                     TextStyle(color: const Color.fromARGB(255, 15, 108, 133)),
@@ -304,6 +306,7 @@ Future<void> readData() async {
                 ],
               ),
               TextField(
+                readOnly: true,
                 controller: emailController,
                 style:
                     TextStyle(color: const Color.fromARGB(255, 15, 108, 133)),
@@ -335,6 +338,7 @@ Future<void> readData() async {
                 ],
               ),
               TextField(
+                readOnly: true,
                 controller: numberController,
                 style:
                     TextStyle(color: const Color.fromARGB(255, 15, 108, 133)),

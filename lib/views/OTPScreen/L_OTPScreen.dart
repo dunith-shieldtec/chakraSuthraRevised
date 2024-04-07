@@ -126,11 +126,12 @@ class _LOTPScreenState extends State<LOTPScreen> {
         var obj = jsonDecode(response.body);
           if (obj["status"]) {
             saveData(obj);
+            dispose();
             Navigator.pushNamed(
-            context, 
-            '/homepage', 
-            arguments: {'head': obj["header"], 'bod': obj["message"]}
-          );
+              context, 
+              '/homepage', 
+              arguments: {'head': obj["header"], 'bod': obj["message"]}
+            );
           }else{
             dialogOpen(context,obj["header"],obj["message"]);
             setState(() {
@@ -171,8 +172,6 @@ class _LOTPScreenState extends State<LOTPScreen> {
     _countdownTimer?.cancel();
     super.dispose();
   }
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -262,12 +261,19 @@ class _LOTPScreenState extends State<LOTPScreen> {
                   text: TextSpan(
                     style: GoogleFonts.montserrat(
                       fontWeight: FontWeight.w400,
-                      fontSize: 15,
+                      fontSize: 15.0,
                       color: const Color.fromARGB(255, 96, 98, 104),
                     ),
                     children: [
                       TextSpan(
                         text: 'Enter the code from the sms we sent to ',
+                      ),
+                      // Add a WidgetSpan with SizedBox for spacing
+                      WidgetSpan(
+                        child: SizedBox(
+                          width: 10.0, // Adjust width as needed
+                          height: 20.0,
+                        ),
                       ),
                       TextSpan(
                         text: '+94 ${phoneController.text}',
@@ -401,7 +407,6 @@ class _LOTPScreenState extends State<LOTPScreen> {
               GestureDetector(
                 onTap: () {
                   _verifyOTP();
-                  // Navigator.pushReplacementNamed(context, '/homepage');
                 },
                 child: CustomButton(
                     text: "CONTINUE",

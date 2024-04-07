@@ -9,6 +9,7 @@ import 'package:pie_chart/pie_chart.dart';
 import 'package:trashtocash/constants/Colors.dart';
 import 'package:trashtocash/views/HomePage/Promotions/LRedeemables/LRedeemables.dart';
 import 'package:trashtocash/widgets/custom_button.dart';
+import 'package:trashtocash/endpoints/points.dart';
 import 'package:http/http.dart' as http;
 import 'package:trashtocash/views/RegisterScreen/register.dart';
 import 'package:path_provider/path_provider.dart';
@@ -129,9 +130,12 @@ class _HomeState extends State<Home> {
                           color: Color.fromARGB(255, 203, 224, 227),
                           borderRadius: BorderRadius.circular(100.0),
                         ),
-                        child: Image.asset(
-                          'assets/images/man.png',
-                          fit: BoxFit.cover,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(100.0),
+                          child: Image.network(
+                            '${Points().phpImageUrl}/$pfp_link',
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ),

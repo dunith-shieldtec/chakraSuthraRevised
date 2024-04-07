@@ -48,6 +48,11 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   String formatMobileNumber(String mobileInput) {
     // Remove all non-numeric characters from the input
     String formattedMobileNumber = mobileInput.replaceAll(RegExp(r'[^0-9]'), '');
@@ -82,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if(!isValidMobileNumber(telephone)){
       dialogOpen(context,"Invalid Number","The Mobile Number You Entered Was Invalid");
     }else{
-      telephone = formatMobileNumber(telephone);
+      telephone = formatMobileNumber(phoneController.text);
 
       var Urlapi = Points().apiUrl;
       var SendOtp = Points().otpSend;
@@ -106,6 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 body: jsonBody,
               );
               if (response.statusCode == 200) {
+                dispose();
                 Navigator.push(
                     context,
                     MaterialPageRoute(
